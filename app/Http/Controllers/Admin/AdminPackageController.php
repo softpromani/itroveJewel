@@ -51,7 +51,9 @@ class AdminPackageController extends Controller
      */
     public function createFresh(Request $request): RedirectResponse
     {
-        @set_time_limit(300);
+        @ini_set('max_execution_time', '0');
+        @set_time_limit(0);
+        @ignore_user_abort(true);
 
         $validated = $request->validate([
             'version' => ['required', 'string', 'max:30', 'regex:/^[a-zA-Z0-9.\-_]+$/', 'unique:admin.fresh_installer_packages,version'],
@@ -169,17 +171,20 @@ class AdminPackageController extends Controller
         );
 
         $baseLen = strlen($sourceDir);
+        $binaryExtensions = ['exe', 'dll', 'pak', 'asar', 'dat', 'bin', 'png', 'jpg', 'jpeg', 'zip', 'gz', 'mp3', 'mp4', 'ico', 'pdf', 'woff', 'woff2', 'sqlite'];
 
         foreach ($iterator as $file) {
             $subPath = substr($file->getPathname(), $baseLen + 1);
             $normalized = str_replace(DIRECTORY_SEPARATOR, '/', $subPath);
 
-            // Skip any potential sensitive or unwanted files
+            // Skip any potential sensitive, unwanted, or heavy dev files
             if (
                 str_contains($normalized, '.usb_hardware_lock.json') ||
                 str_contains($normalized, 'admin.sqlite') ||
                 str_contains($normalized, '.git') ||
-                str_contains($normalized, 'tests/')
+                str_contains($normalized, 'tests/') ||
+                str_contains($normalized, 'nativephp/electron') ||
+                str_contains($normalized, 'bootstrap/cache/')
             ) {
                 continue;
             }
@@ -190,6 +195,11 @@ class AdminPackageController extends Controller
                 $zip->addEmptyDir($zipEntryPath);
             } else {
                 $zip->addFile($file->getPathname(), $zipEntryPath);
+
+                $ext = strtolower($file->getExtension());
+                if (in_array($ext, $binaryExtensions, true)) {
+                    $zip->setCompressionName($zipEntryPath, ZipArchive::CM_STORE);
+                }
             }
         }
     }

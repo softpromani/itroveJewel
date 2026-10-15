@@ -83,6 +83,8 @@ class AppPackagePortableCommand extends Command
         'storage/app/fresh_installers*',
         'storage/app/releases*',
         'bootstrap/cache/*.php',
+        'nativephp*',
+        '*/nativephp*',
         '*/tests/*',
         '*.git*',
     ];
@@ -224,6 +226,13 @@ class AppPackagePortableCommand extends Command
                     $this->line("  - Purged stale bootstrap cache: {$cacheFile->getFilename()}");
                 }
             }
+        }
+
+        // Purge any build-time development nativephp folder if it exists in app build
+        $nativephpDir = $targetDir.DIRECTORY_SEPARATOR.'nativephp';
+        if (File::isDirectory($nativephpDir)) {
+            File::deleteDirectory($nativephpDir);
+            $this->line('  - Purged build-time nativephp directory');
         }
     }
 
