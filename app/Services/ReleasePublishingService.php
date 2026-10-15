@@ -31,6 +31,7 @@ class ReleasePublishingService
         'database/migrations/admin*',
         'storage/app/fresh_installers*',
         'storage/app/releases*',
+        'bootstrap/cache/*.php',
         'data/database*',
         'data/security*',
         '.usb_hardware_lock.json',

@@ -213,6 +213,7 @@ class AdminPackageController extends Controller
             'database/migrations/admin*',
             'data/database*',
             'data/security*',
+            'bootstrap/cache/*.php',
             '*/tests/*',
             '*.git*',
         ];

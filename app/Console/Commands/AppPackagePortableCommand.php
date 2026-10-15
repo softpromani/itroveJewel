@@ -82,6 +82,7 @@ class AppPackagePortableCommand extends Command
         'database/migrations/admin*',
         'storage/app/fresh_installers*',
         'storage/app/releases*',
+        'bootstrap/cache/*.php',
         '*/tests/*',
         '*.git*',
     ];
@@ -211,6 +212,17 @@ class AppPackagePortableCommand extends Command
             } elseif (File::isFile($fullPath)) {
                 File::delete($fullPath);
                 $this->line("  - Removed: {$relPath}");
+            }
+        }
+
+        // Purge any stale developer bootstrap caches (e.g. BoostServiceProvider from require-dev)
+        $bootstrapCache = $targetDir.DIRECTORY_SEPARATOR.'bootstrap'.DIRECTORY_SEPARATOR.'cache';
+        if (File::isDirectory($bootstrapCache)) {
+            foreach (File::files($bootstrapCache) as $cacheFile) {
+                if ($cacheFile->getFilename() !== '.gitignore') {
+                    File::delete($cacheFile);
+                    $this->line("  - Purged stale bootstrap cache: {$cacheFile->getFilename()}");
+                }
             }
         }
     }
@@ -363,6 +375,19 @@ class AppPackagePortableCommand extends Command
         $this->line('  ✓ No routes/admin.php found in build.');
         $this->line('  ✓ No database/admin.sqlite found in build.');
         $this->line('  ✓ No database/migrations/admin found in build.');
+
+        // Guarantee no stale dev service providers are cached
+        $packagesCache = $targetDir.DIRECTORY_SEPARATOR.'bootstrap'.DIRECTORY_SEPARATOR.'cache'.DIRECTORY_SEPARATOR.'packages.php';
+        if (File::exists($packagesCache)) {
+            $cacheContent = File::get($packagesCache);
+            if (str_contains($cacheContent, 'BoostServiceProvider')) {
+                $this->error('CRITICAL: Stale BoostServiceProvider found in bootstrap/cache/packages.php!');
+
+                return false;
+            }
+        }
+        $this->line('  ✓ No stale BoostServiceProvider found in bootstrap/cache.');
+
         $this->line('  ✓ Build is completely free of Admin Panel code and database.');
 
         return true;
