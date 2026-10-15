@@ -17,16 +17,20 @@ Route::prefix('api/usb')->group(function () {
     Route::post('/reset', [UsbLockController::class, 'reset'])->name('usb.reset');
 });
 
-// Central Server License Verification Endpoint (called by pendrives to verify hardware serial)
-Route::post('/api/license/verify-usb', [LicenseVerificationController::class, 'verifyUsb'])->name('license.verify');
+// Central Server License Verification Endpoint (only available on central web server)
+if (class_exists(LicenseVerificationController::class)) {
+    Route::post('/api/license/verify-usb', [LicenseVerificationController::class, 'verifyUsb'])->name('license.verify');
+}
 
-// Central Web Admin Management Portal (STRICTLY RESTRICTED to Web Server - NEVER included or active in desktop builds)
-Route::middleware([EnsureNotAppBuildMiddleware::class])->prefix('admin')->name('admin.')->group(function () {
-    Route::get('/', [AdminClientController::class, 'index'])->name('dashboard');
-    Route::resource('clients', AdminClientController::class);
+// Central Web Admin Management Portal (STRICTLY Web Server only - NEVER built into desktop app)
+if (class_exists(AdminClientController::class)) {
+    Route::middleware([EnsureNotAppBuildMiddleware::class])->prefix('admin')->name('admin.')->group(function () {
+        Route::get('/', [AdminClientController::class, 'index'])->name('dashboard');
+        Route::resource('clients', AdminClientController::class);
 
-    // Client Pendrive Hardware Serial Registration & Management
-    Route::post('clients/{client}/pendrives', [AdminPendriveController::class, 'store'])->name('clients.pendrives.store');
-    Route::post('pendrives/{pendrive}/toggle', [AdminPendriveController::class, 'toggleStatus'])->name('pendrives.toggle');
-    Route::delete('pendrives/{pendrive}', [AdminPendriveController::class, 'destroy'])->name('pendrives.destroy');
-});
+        // Client Pendrive Hardware Serial Registration & Management
+        Route::post('clients/{client}/pendrives', [AdminPendriveController::class, 'store'])->name('clients.pendrives.store');
+        Route::post('pendrives/{pendrive}/toggle', [AdminPendriveController::class, 'toggleStatus'])->name('pendrives.toggle');
+        Route::delete('pendrives/{pendrive}', [AdminPendriveController::class, 'destroy'])->name('pendrives.destroy');
+    });
+}

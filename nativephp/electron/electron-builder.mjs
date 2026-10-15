@@ -78,6 +78,9 @@ export default {
         '!electron.vite.config.{js,ts,mjs,cjs}',
         '!{.eslintignore,.eslintrc.cjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}',
         '!{.env,.env.*,.npmrc,pnpm-lock.yaml}',
+        '!app/Http/Controllers/Admin/**',
+        '!app/Http/Controllers/Api/LicenseVerificationController.php',
+        '!resources/views/admin/**',
     ],
     beforePack: async (context) => {
         let arch = {
@@ -163,7 +166,13 @@ export default {
         {
             from: process.env.NATIVEPHP_BUILD_PATH,
             to: 'build',
-            filter: ['**/*', '!{.git}'],
+            filter: [
+                '**/*',
+                '!{.git}',
+                '!app/Http/Controllers/Admin/**',
+                '!app/Http/Controllers/Api/LicenseVerificationController.php',
+                '!resources/views/admin/**',
+            ],
         },
     ],
     extraFiles: [

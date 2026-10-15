@@ -75,6 +75,9 @@ return [
         'NATIVEPHP_AZURE_ENDPOINT',
         'NATIVEPHP_AZURE_CERTIFICATE_PROFILE_NAME',
         'NATIVEPHP_AZURE_CODE_SIGNING_ACCOUNT_NAME',
+        'APP_ENABLE_ADMIN_PANEL',
+        'ADMIN_*',
+        'LICENSE_SERVER_SECRET',
     ],
 
     /**
@@ -88,6 +91,13 @@ return [
         'content',
         'node_modules',
         '*/tests',
+
+        // Central Web Admin Panel & Server Verification strictly excluded from app builds:
+        'app/Http/Controllers/Admin',
+        'app/Http/Controllers/Admin/*',
+        'app/Http/Controllers/Api/LicenseVerificationController.php',
+        'resources/views/admin',
+        'resources/views/admin/*',
     ],
 
     /**
