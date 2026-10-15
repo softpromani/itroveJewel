@@ -44,6 +44,18 @@ return [
             'transaction_mode' => 'DEFERRED',
         ],
 
+        'admin' => [
+            'driver' => 'sqlite',
+            'url' => env('ADMIN_DB_URL'),
+            'database' => env('ADMIN_DB_DATABASE', database_path('admin.sqlite')),
+            'prefix' => '',
+            'foreign_key_constraints' => env('ADMIN_DB_FOREIGN_KEYS', true),
+            'busy_timeout' => null,
+            'journal_mode' => null,
+            'synchronous' => null,
+            'transaction_mode' => 'DEFERRED',
+        ],
+
         'mysql' => [
             'driver' => 'mysql',
             'url' => env('DB_URL'),

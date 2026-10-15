@@ -96,8 +96,16 @@ return [
         'app/Http/Controllers/Admin',
         'app/Http/Controllers/Admin/*',
         'app/Http/Controllers/Api/LicenseVerificationController.php',
+        'app/Http/Controllers/Api/UpdateServerController.php',
+        'app/Console/Commands/AdminMigrateCommand.php',
+        'app/Console/Commands/AppPublishReleaseCommand.php',
         'resources/views/admin',
         'resources/views/admin/*',
+        'routes/admin.php',
+        'database/admin.sqlite',
+        'database/admin.sqlite*',
+        'database/migrations/admin',
+        'database/migrations/admin/*',
     ],
 
     /**

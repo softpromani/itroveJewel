@@ -137,4 +137,6 @@ return [
 
     'license_server_url' => env('LICENSE_SERVER_URL', null),
 
+    'update_server_url' => env('UPDATE_SERVER_URL', null),
+
 ];

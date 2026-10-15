@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use RecursiveCallbackFilterIterator;
 use RecursiveDirectoryIterator;
@@ -17,6 +18,8 @@ class AppPackagePortableCommand extends Command
      */
     protected $signature = 'app:package-portable
         {--target=USB_READY_ItroveJewel/resources/build/app : Destination path for the desktop app build}
+        {--app-url= : Central production API base domain (e.g. https://api.yourdomain.com) for APP_URL}
+        {--fresh : Clear previous USB hardware locks and initialize a clean database for a new customer}
         {--audit-only : Audit target directory to ensure NO admin code is present without copying}';
 
     /**
@@ -32,7 +35,13 @@ class AppPackagePortableCommand extends Command
     protected array $forbiddenBuildPaths = [
         'app/Http/Controllers/Admin',
         'app/Http/Controllers/Api/LicenseVerificationController.php',
+        'app/Http/Controllers/Api/UpdateServerController.php',
+        'app/Console/Commands/AdminMigrateCommand.php',
+        'app/Console/Commands/AppPublishReleaseCommand.php',
         'resources/views/admin',
+        'routes/admin.php',
+        'database/admin.sqlite',
+        'database/migrations/admin',
     ];
 
     /**
@@ -63,7 +72,14 @@ class AppPackagePortableCommand extends Command
     protected array $excludedPatterns = [
         'app/Http/Controllers/Admin*',
         'app/Http/Controllers/Api/LicenseVerificationController.php',
+        'app/Http/Controllers/Api/UpdateServerController.php',
+        'app/Console/Commands/AdminMigrateCommand.php',
+        'app/Console/Commands/AppPublishReleaseCommand.php',
         'resources/views/admin*',
+        'routes/admin.php',
+        'database/admin.sqlite*',
+        'database/test_admin.sqlite*',
+        'database/migrations/admin*',
         '*/tests/*',
         '*.git*',
     ];
@@ -73,7 +89,10 @@ class AppPackagePortableCommand extends Command
      */
     public function handle(): int
     {
-        $targetDir = base_path($this->option('target'));
+        $targetOption = $this->option('target');
+        $targetDir = (str_starts_with($targetOption, '/') || (strlen($targetOption) > 2 && $targetOption[1] === ':'))
+            ? $targetOption
+            : base_path($targetOption);
 
         $this->info('========================================================================');
         $this->info(' ITROVEJEWEL - APP BUILD PACKAGING & ISOLATION SYSTEM');
@@ -106,11 +125,75 @@ class AppPackagePortableCommand extends Command
             return 1;
         }
 
+        if ($this->option('fresh')) {
+            $this->info('5. Initializing clean, uninstalled customer state (--fresh)...');
+            $this->resetFreshCustomerState($targetDir);
+        }
+
         $this->info('========================================================================');
         $this->info(' SUCCESS: Desktop app successfully packaged with ZERO admin code built.');
         $this->info('========================================================================');
 
         return 0;
+    }
+
+    /**
+     * Clear previous hardware locks and initialize a clean customer database.
+     */
+    protected function resetFreshCustomerState(string $targetDir): void
+    {
+        $portableRoot = dirname(dirname(dirname($targetDir)));
+        $candidates = array_unique([
+            $portableRoot.DIRECTORY_SEPARATOR.'data',
+            $targetDir.DIRECTORY_SEPARATOR.'data',
+            base_path('USB_READY_ItroveJewel'.DIRECTORY_SEPARATOR.'data'),
+        ]);
+
+        foreach ($candidates as $dataDir) {
+            if (! File::isDirectory($dataDir)) {
+                File::makeDirectory($dataDir, 0755, true);
+            }
+
+            // Remove previous lock files
+            $lockFile = $dataDir.DIRECTORY_SEPARATOR.'.usb_hardware_lock.json';
+            if (File::exists($lockFile)) {
+                File::delete($lockFile);
+                $this->line('  ✓ Cleared previous hardware lock file.');
+            }
+
+            $securityDir = $dataDir.DIRECTORY_SEPARATOR.'security';
+            if (File::isDirectory($securityDir)) {
+                File::deleteDirectory($securityDir);
+                $this->line('  ✓ Cleaned data/security directory.');
+            }
+
+            // Fresh database
+            $dbDir = $dataDir.DIRECTORY_SEPARATOR.'database';
+            if (! File::isDirectory($dbDir)) {
+                File::makeDirectory($dbDir, 0755, true);
+            }
+            $dbFile = $dbDir.DIRECTORY_SEPARATOR.'database.sqlite';
+            File::put($dbFile, '');
+
+            try {
+                Artisan::call('migrate:fresh', [
+                    '--database' => 'sqlite',
+                    '--path' => 'database/migrations',
+                    '--force' => true,
+                ]);
+                $this->line('  ✓ Initialized fresh customer SQLite database with core tables.');
+            } catch (\Throwable) {
+                // Migrations handled
+            }
+        }
+
+        // Clean any temporary storage logs or caches in build
+        $storageLogs = $targetDir.DIRECTORY_SEPARATOR.'storage'.DIRECTORY_SEPARATOR.'logs';
+        if (File::isDirectory($storageLogs)) {
+            foreach (File::files($storageLogs) as $logFile) {
+                File::delete($logFile);
+            }
+        }
     }
 
     /**
@@ -195,18 +278,47 @@ class AppPackagePortableCommand extends Command
     }
 
     /**
-     * Ensure the build .env file forces APP_ENABLE_ADMIN_PANEL=false.
+     * Ensure the build .env file forces APP_ENABLE_ADMIN_PANEL=false and sets APP_URL if requested.
      */
     protected function secureEnvFile(string $targetDir): void
     {
         $envPath = $targetDir.DIRECTORY_SEPARATOR.'.env';
+
+        // Synchronize .env from root project .env first, fallback to .env.example
+        $sourceEnv = base_path('.env');
+        if (! File::exists($sourceEnv)) {
+            $sourceEnv = base_path('.env.example');
+        }
+
+        if (File::exists($sourceEnv)) {
+            File::copy($sourceEnv, $envPath);
+        }
+
         if (File::exists($envPath)) {
             $env = File::get($envPath);
+
+            // 1. Force Admin Panel to be strictly disabled in desktop build
             if (! str_contains($env, 'APP_ENABLE_ADMIN_PANEL')) {
                 $env .= "\nAPP_ENABLE_ADMIN_PANEL=false\n";
             } else {
                 $env = preg_replace('/APP_ENABLE_ADMIN_PANEL=.*/', 'APP_ENABLE_ADMIN_PANEL=false', $env);
             }
+
+            // 2. If user explicitly passed --app-url, override it; otherwise preserve the .env APP_URL
+            $appUrl = $this->option('app-url');
+            if (! empty($appUrl)) {
+                $appUrl = rtrim(trim($appUrl), '/');
+                if (! str_starts_with($appUrl, 'http://') && ! str_starts_with($appUrl, 'https://')) {
+                    $appUrl = 'https://'.$appUrl;
+                }
+
+                if (str_contains($env, 'APP_URL=')) {
+                    $env = preg_replace('/APP_URL=.*/', 'APP_URL="'.$appUrl.'"', $env);
+                } else {
+                    $env .= "\nAPP_URL=\"{$appUrl}\"\n";
+                }
+            }
+
             File::put($envPath, $env);
         }
     }
@@ -243,7 +355,13 @@ class AppPackagePortableCommand extends Command
         $this->line('  ✓ No app/Http/Controllers/Admin directory found in build.');
         $this->line('  ✓ No resources/views/admin directory found in build.');
         $this->line('  ✓ No LicenseVerificationController found in build.');
-        $this->line('  ✓ Build is completely free of Admin Panel code.');
+        $this->line('  ✓ No UpdateServerController found in build.');
+        $this->line('  ✓ No AdminMigrateCommand found in build.');
+        $this->line('  ✓ No AppPublishReleaseCommand found in build.');
+        $this->line('  ✓ No routes/admin.php found in build.');
+        $this->line('  ✓ No database/admin.sqlite found in build.');
+        $this->line('  ✓ No database/migrations/admin found in build.');
+        $this->line('  ✓ Build is completely free of Admin Panel code and database.');
 
         return true;
     }

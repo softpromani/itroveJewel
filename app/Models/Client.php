@@ -11,6 +11,13 @@ class Client extends Model
     use HasFactory;
 
     /**
+     * The database connection name for the model.
+     *
+     * @var string|null
+     */
+    protected $connection = 'admin';
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var array<int, string>

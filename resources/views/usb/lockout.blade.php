@@ -9,20 +9,11 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Cinzel:wght@700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
     <style>
-        body {
-            background-color: #0B0406;
-            color: #FEE2E2;
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            user-select: none;
-        }
         .font-mono-code {
             font-family: 'JetBrains Mono', monospace;
         }
-        .lockout-panel {
-            background: rgba(22, 10, 14, 0.94);
-            backdrop-filter: blur(24px);
-            border: 1px solid rgba(239, 68, 68, 0.35);
-            box-shadow: 0 0 50px rgba(220, 38, 38, 0.2);
+        body {
+            user-select: none;
         }
         .danger-pulse {
             animation: dangerPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
@@ -32,6 +23,7 @@
             50% { opacity: .85; transform: scale(1.03); }
         }
     </style>
+    <x-theme-styles />
 </head>
 <body class="min-h-screen flex flex-col justify-between p-6">
 
@@ -49,9 +41,13 @@
             </div>
         </div>
 
-        <div class="flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-red-950/80 border border-red-500/60 text-xs">
-            <span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping"></span>
-            <span class="text-red-300 font-bold tracking-wider">ACCESS DENIED</span>
+        <div class="flex items-center space-x-3">
+            <x-theme-toggle />
+
+            <div class="flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-red-950/80 border border-red-500/60 text-xs">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping"></span>
+                <span class="text-red-300 font-bold tracking-wider">ACCESS DENIED</span>
+            </div>
         </div>
     </header>
 

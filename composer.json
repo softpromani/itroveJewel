@@ -75,6 +75,15 @@
         "native:dev": [
             "Composer\\Config::disableProcessTimeout",
             "npx concurrently -k -c \"#93c5fd,#c4b5fd\" \"php artisan native:run --no-interaction\" \"npm run dev\" --names=app,vite"
+        ],
+        "migrate:admin": [
+            "@php artisan admin:migrate"
+        ],
+        "migrate:admin:fresh": [
+            "@php artisan admin:migrate --fresh"
+        ],
+        "package:usb": [
+            "@php artisan app:package-portable"
         ]
     },
     "extra": {

@@ -206,4 +206,25 @@ class UsbHardwareLockTest extends TestCase
         $this->assertTrue($verification['is_authorized']);
         $this->assertFalse($verification['is_build']);
     }
+
+    /**
+     * Test that the Windows desktop app screens include the Dark and Light theme toggle.
+     */
+    public function test_desktop_app_screens_render_dark_and_light_theme_toggle(): void
+    {
+        // 1. Uninstalled / Setup screen
+        $installResponse = $this->get('/');
+        $installResponse->assertStatus(200);
+        $installResponse->assertSee('data-theme-toggle', false);
+        $installResponse->assertSee('theme-btn-light', false);
+        $installResponse->assertSee('theme-btn-dark', false);
+
+        // 2. Developer Workspace / Home screen
+        UsbLockService::$fakeBuildEnvironment = false;
+        $homeResponse = $this->get('/');
+        $homeResponse->assertStatus(200);
+        $homeResponse->assertSee('data-theme-toggle', false);
+        $homeResponse->assertSee('theme-btn-light', false);
+        $homeResponse->assertSee('theme-btn-dark', false);
+    }
 }

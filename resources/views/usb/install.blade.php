@@ -9,32 +9,17 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Cinzel:wght@700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
     <style>
-        body {
-            background-color: #07090E;
-            color: #F1F5F9;
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            user-select: none;
-        }
         .font-mono-code {
             font-family: 'JetBrains Mono', monospace;
         }
-        .gold-gradient {
-            background: linear-gradient(135deg, #FDE047 0%, #EAB308 50%, #B45309 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .gold-border {
-            border: 1px solid rgba(234, 179, 8, 0.3);
-            box-shadow: 0 0 25px rgba(234, 179, 8, 0.08);
-        }
-        .glass-panel {
-            background: rgba(13, 17, 26, 0.92);
-            backdrop-filter: blur(20px);
+        body {
+            user-select: none;
         }
         .pulse-glow {
             box-shadow: 0 0 30px rgba(234, 179, 8, 0.25);
         }
     </style>
+    <x-theme-styles />
 </head>
 <body class="min-h-screen flex flex-col justify-between p-6">
 
@@ -52,9 +37,13 @@
             </div>
         </div>
 
-        <div class="flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-amber-950/40 border border-amber-500/40 text-xs">
-            <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-            <span class="text-amber-300 font-semibold tracking-wide">SETUP MODE: UNLOCKED DRIVE</span>
+        <div class="flex items-center space-x-3">
+            <x-theme-toggle />
+
+            <div class="flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-amber-950/40 border border-amber-500/40 text-xs">
+                <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                <span class="text-amber-300 font-semibold tracking-wide">SETUP MODE: UNLOCKED DRIVE</span>
+            </div>
         </div>
     </header>
 

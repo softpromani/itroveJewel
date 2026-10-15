@@ -118,7 +118,7 @@ class AdminClientManagementTest extends TestCase
             'client_id' => $client->id,
             'serial_number' => 'SANDISK_FLAIR_99887766',
             'status' => 'active',
-        ]);
+        ], 'admin');
     }
 
     /**
@@ -148,7 +148,7 @@ class AdminClientManagementTest extends TestCase
         $this->assertDatabaseMissing('pendrive_registrations', [
             'client_id' => $clientB->id,
             'serial_number' => 'SHARED_SERIAL_123',
-        ]);
+        ], 'admin');
     }
 
     /**
@@ -287,5 +287,38 @@ class AdminClientManagementTest extends TestCase
             'authorized' => false,
             'status' => 'CLIENT_INACTIVE',
         ]);
+    }
+
+    /**
+     * Test that the Admin Portal includes the Dark and Light theme toggle.
+     */
+    public function test_admin_portal_renders_dark_and_light_theme_toggle(): void
+    {
+        $response = $this->get('/admin/clients');
+
+        $response->assertStatus(200);
+        $response->assertSee('data-theme-toggle', false);
+        $response->assertSee('theme-btn-light', false);
+        $response->assertSee('theme-btn-dark', false);
+        $response->assertSee('setAppTheme', false);
+    }
+
+    /**
+     * Test that the Admin Portal includes a sidebar with navigation icons, expandable submenus, and minimize options.
+     */
+    public function test_admin_portal_renders_sidebar_with_icons_and_minimize_options(): void
+    {
+        $response = $this->get('/admin/clients');
+
+        $response->assertStatus(200);
+        // Sidebar container and elements
+        $response->assertSee('id="admin-sidebar"', false);
+        $response->assertSee('toggleSidebarCollapse()', false);
+        $response->assertSee('toggleMobileSidebar()', false);
+        $response->assertSee('toggleSubmenu', false);
+        $response->assertSee('Minimize Sidebar');
+        $response->assertSee('Clients & Stores', false);
+        $response->assertSee('USB Hardware Locks');
+        $response->assertSee('License Verify API');
     }
 }

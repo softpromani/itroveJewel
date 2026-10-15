@@ -7,6 +7,7 @@ use App\Models\Client;
 use App\Models\PendriveRegistration;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class AdminClientController extends Controller
@@ -73,7 +74,7 @@ class AdminClientController extends Controller
             'client_name' => ['required', 'string', 'max:150'],
             'shop_name' => ['required', 'string', 'max:200'],
             'mobile_number' => ['required', 'string', 'max:30'],
-            'email' => ['required', 'email', 'max:150', 'unique:clients,email'],
+            'email' => ['required', 'email', 'max:150', Rule::unique(Client::class, 'email')],
             'notes' => ['nullable', 'string', 'max:1000'],
         ]);
 
@@ -119,7 +120,7 @@ class AdminClientController extends Controller
             'client_name' => ['required', 'string', 'max:150'],
             'shop_name' => ['required', 'string', 'max:200'],
             'mobile_number' => ['required', 'string', 'max:30'],
-            'email' => ['required', 'email', 'max:150', 'unique:clients,email,'.$client->id],
+            'email' => ['required', 'email', 'max:150', Rule::unique(Client::class, 'email')->ignore($client->id)],
             'status' => ['required', 'in:active,suspended,inactive'],
             'notes' => ['nullable', 'string', 'max:1000'],
         ]);

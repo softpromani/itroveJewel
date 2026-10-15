@@ -437,12 +437,18 @@ POWERSHELL;
             ];
         }
 
-        $remoteServerUrl = config('app.license_server_url');
+        $rawLicenseUrl = config('app.license_server_url');
+        $hasLocalAdminDb = class_exists(PendriveRegistration::class) && file_exists(config('database.connections.admin.database', ''));
 
-        // 1. If configured to call a remote Central Web Server
-        if (! empty($remoteServerUrl)) {
+        // 1. If configured with a license URL or running in build environment without local admin DB, call Central Server API
+        if (! empty($rawLicenseUrl) || (! $hasLocalAdminDb && $this->isBuildEnvironment())) {
+            $baseApiDomain = rtrim(config('app.url') ?: env('APP_URL', 'http://127.0.0.1:8000'), '/');
+            $licenseApiUrl = ! empty($rawLicenseUrl)
+                ? (str_ends_with($rawLicenseUrl, '/api/license/verify-usb') ? $rawLicenseUrl : rtrim($rawLicenseUrl, '/').'/api/license/verify-usb')
+                : "{$baseApiDomain}/api/license/verify-usb";
+
             try {
-                $response = Http::timeout(6)->asJson()->post($remoteServerUrl, [
+                $response = Http::timeout(6)->asJson()->post($licenseApiUrl, [
                     'serial_number' => $serial,
                     'model' => $model,
                 ]);

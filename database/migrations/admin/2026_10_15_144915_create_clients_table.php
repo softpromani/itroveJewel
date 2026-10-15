@@ -7,11 +7,16 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Run the migrations.
+     * The database connection that should be used by the migration.
+     */
+    protected $connection = 'admin';
+
+    /**
+     * Run the migrations on the dedicated admin database.
      */
     public function up(): void
     {
-        Schema::create('clients', function (Blueprint $table) {
+        Schema::connection('admin')->create('clients', function (Blueprint $table) {
             $table->id();
             $table->string('client_name');
             $table->string('shop_name');
@@ -28,6 +33,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('clients');
+        Schema::connection('admin')->dropIfExists('clients');
     }
 };
