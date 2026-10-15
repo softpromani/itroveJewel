@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -49,8 +49,18 @@
             </div>
         </div>
 
-        <!-- Security Badge -->
+        <!-- Security Badge & Admin Link -->
         <div class="flex items-center space-x-3">
+            @if(config('app.enable_admin_panel') && !app(\App\Services\UsbLockService::class)->isBuildEnvironment())
+                <a href="{{ route('admin.clients.index') }}" 
+                    class="px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/40 text-amber-300 hover:bg-amber-500/20 text-xs font-semibold transition flex items-center space-x-1.5">
+                    <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+                    </svg>
+                    <span>Web Admin Portal</span>
+                </a>
+            @endif
+
             @if(($verification['status'] ?? '') === 'DEV_BYPASS')
                 <div class="flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-cyan-950/70 border border-cyan-500/40 text-xs">
                     <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
@@ -127,10 +137,27 @@
                         </span>
                     @else
                         <span class="text-[10px] font-semibold text-emerald-400 bg-emerald-950/80 border border-emerald-500/40 px-2.5 py-1 rounded-full">
-                            MATCHED * UNLOCKED
+                            MATCHED &bull; UNLOCKED
                         </span>
                     @endif
                 </div>
+
+                @if(!empty($lock_data['shop_name']))
+                    <div class="p-3.5 rounded-xl bg-amber-950/20 border border-amber-500/40 flex items-center justify-between text-xs">
+                        <div>
+                            <span class="text-[10px] uppercase font-bold text-amber-400">Licensed Jewel Client</span>
+                            <p class="text-sm font-bold text-white mt-0.5">
+                                {{ $lock_data['shop_name'] }}
+                                @if(!empty($lock_data['client_name']))
+                                    <span class="text-xs text-slate-400 font-normal">&bull; {{ $lock_data['client_name'] }}</span>
+                                @endif
+                            </p>
+                        </div>
+                        <span class="text-[10px] font-mono-code text-emerald-400 bg-emerald-950/80 border border-emerald-500/40 px-2.5 py-1 rounded-full">
+                            VERIFIED LICENSE
+                        </span>
+                    </div>
+                @endif
 
                 <div class="grid grid-cols-2 gap-3 text-xs">
                     <div class="p-3 rounded-xl bg-slate-950/50 border border-slate-800/70">

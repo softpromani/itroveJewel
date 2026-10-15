@@ -130,6 +130,66 @@
                 </div>
             </div>
 
+            <!-- Central Server License Verification Card -->
+            @if(!empty($server_verification['verified']))
+                <div class="p-4 rounded-2xl bg-emerald-950/60 border border-emerald-500/50 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                            <span class="text-xs font-bold text-emerald-300 uppercase tracking-wider">Server Verified & Authorized</span>
+                        </div>
+                        <span class="text-[10px] font-mono-code text-emerald-400 bg-emerald-900/50 px-2 py-0.5 rounded-md border border-emerald-500/30">
+                            Client #{{ $server_verification['client']['id'] ?? '1' }}
+                        </span>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 text-xs">
+                        <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
+                            <span class="text-[10px] text-slate-400 uppercase font-semibold block">Store / Shop Name</span>
+                            <span class="text-white font-bold block truncate mt-0.5">{{ $server_verification['client']['shop_name'] ?? 'Authorized Jeweler' }}</span>
+                        </div>
+                        <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
+                            <span class="text-[10px] text-slate-400 uppercase font-semibold block">Client / Owner</span>
+                            <span class="text-white font-bold block truncate mt-0.5">{{ $server_verification['client']['client_name'] ?? 'Owner' }}</span>
+                        </div>
+                    </div>
+                </div>
+            @else
+                <div class="p-4 rounded-2xl bg-amber-950/50 border border-amber-500/50 space-y-3">
+                    <div class="flex items-start space-x-2.5">
+                        <svg class="w-5 h-5 text-amber-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                        <div>
+                            <h4 class="text-xs font-bold text-amber-300 uppercase tracking-wide">Server Registration Required</h4>
+                            <p class="text-[11px] text-amber-200/90 mt-0.5 leading-relaxed">
+                                {{ $server_verification['message'] ?? 'This USB pendrive serial is not registered to an active client on the central server.' }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-950/70 p-3 rounded-xl border border-slate-800 text-[11px] text-slate-300 space-y-1.5">
+                        <p class="text-slate-400">
+                            <strong class="text-white">How to register:</strong> Open your <strong class="text-amber-400">Web Admin Panel</strong>:
+                        </p>
+                        <ol class="list-decimal list-inside text-slate-400 space-y-1 pl-1">
+                            <li>Create or select the Client in <strong class="text-slate-200">Admin &rarr; Clients</strong></li>
+                            <li>Add this Pendrive Serial: <code class="text-amber-300 font-mono-code font-bold select-all bg-slate-900 px-1.5 py-0.5 rounded border border-amber-500/30">{{ $hardware['serial_number'] }}</code></li>
+                            <li>Click <strong class="text-emerald-400">Re-verify Server</strong> below</li>
+                        </ol>
+                    </div>
+
+                    <div class="flex justify-end pt-1">
+                        <button type="button" onclick="window.location.reload()" class="px-3.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-semibold transition flex items-center space-x-1.5">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                            <span>Re-verify Server</span>
+                        </button>
+                    </div>
+                </div>
+            @endif
+
             <!-- Lock Details & Anti-Cloning Notice -->
             <div class="p-4 rounded-xl bg-slate-900/40 border border-slate-800 text-xs space-y-2 text-slate-300">
                 <div class="flex items-start space-x-2.5">
@@ -146,9 +206,10 @@
             <form id="installForm" class="space-y-4">
                 <div>
                     <label for="adminName" class="block text-xs font-semibold text-slate-300 mb-1.5">
-                        Administrator / Store Owner Name
+                        Client / Store Owner Name
                     </label>
-                    <input type="text" id="adminName" name="admin_name" value="Store Administrator" 
+                    <input type="text" id="adminName" name="admin_name" 
+                        value="{{ !empty($server_verification['client']) ? ($server_verification['client']['client_name'] . ' (' . $server_verification['client']['shop_name'] . ')') : 'Store Administrator' }}" 
                         class="w-full px-4 py-2.5 rounded-xl bg-slate-900/90 border border-slate-700 text-sm text-white focus:outline-none focus:border-amber-400 transition placeholder-slate-500">
                 </div>
 
@@ -164,12 +225,22 @@
                 <div id="alertBox" class="hidden p-3 rounded-xl text-xs font-medium border"></div>
 
                 <!-- Submit Button -->
+                @php
+                    $isVerified = !empty($server_verification['verified']);
+                @endphp
                 <button type="submit" id="submitBtn" 
-                    class="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-300 hover:from-amber-400 hover:to-yellow-200 text-slate-950 font-bold text-sm tracking-wide shadow-lg shadow-amber-500/25 transition-all transform active:scale-[0.98] flex items-center justify-center space-x-2">
-                    <svg class="w-5 h-5 text-slate-950" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    @if(!$isVerified) disabled @endif
+                    class="w-full py-3.5 px-6 rounded-2xl {{ $isVerified ? 'bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-300 hover:from-amber-400 hover:to-yellow-200 text-slate-950 font-bold shadow-lg shadow-amber-500/25 active:scale-[0.98]' : 'bg-slate-800 text-slate-500 cursor-not-allowed opacity-60 font-semibold' }} text-sm tracking-wide transition-all transform flex items-center justify-center space-x-2">
+                    <svg class="w-5 h-5 {{ $isVerified ? 'text-slate-950' : 'text-slate-500' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
                     </svg>
-                    <span id="btnText">INSTALL & LOCK TO THIS USB PENDRIVE</span>
+                    <span id="btnText">
+                        @if($isVerified)
+                            INSTALL & BIND TO {{ strtoupper($server_verification['client']['shop_name'] ?? 'THIS USB') }}
+                        @else
+                            REGISTER SERIAL IN ADMIN PANEL TO UNLOCK INSTALL
+                        @endif
+                    </span>
                 </button>
             </form>
         </div>

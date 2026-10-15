@@ -25,8 +25,20 @@ class UsbHardwareLockMiddleware
             return $next($request);
         }
 
-        // Exclude internal installer / status routes to avoid circular blocks
-        if ($request->is('api/usb/*') || $request->is('usb/*') || $request->is('/')) {
+        // In packaged app builds, the web Admin Panel is strictly inaccessible
+        if ($request->is('admin') || $request->is('admin/*')) {
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return response()->json([
+                    'error' => 'ADMIN_PANEL_DISABLED_IN_DESKTOP_BUILD',
+                    'message' => 'The Admin Management Panel is only accessible on the central web server.',
+                ], 403);
+            }
+
+            abort(404, 'The Admin Management Panel is only accessible on the central web server.');
+        }
+
+        // Exclude internal installer / status / license routes to avoid circular blocks
+        if ($request->is('api/usb/*') || $request->is('usb/*') || $request->is('api/license/*') || $request->is('/')) {
             return $next($request);
         }
 

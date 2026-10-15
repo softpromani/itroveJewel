@@ -22,13 +22,21 @@ class UsbLockController extends Controller
     {
         $hw = $this->usbLockService->getHardwareInfo();
         $verification = $this->usbLockService->verifyLock($hw);
+        $lockData = $this->usbLockService->getLockData();
 
         // Developer Mode: allow developers to work freely, with optional previews
         if ($verification['status'] === 'DEV_BYPASS') {
             if ($request->query('preview') === 'install') {
+                $serverVerification = $this->usbLockService->verifySerialWithServer(
+                    $hw['serial_number'] ?? '',
+                    $hw['model'] ?? null
+                );
+
                 return view('usb.install', [
                     'hardware' => $hw,
                     'verification' => array_merge($verification, ['status' => 'NOT_INSTALLED']),
+                    'server_verification' => $serverVerification,
+                    'lock_data' => $lockData,
                 ]);
             }
 
@@ -39,19 +47,28 @@ class UsbLockController extends Controller
                         'status' => 'LOCKOUT',
                         'locked_serial' => 'PREVIEW_USB_SERIAL_DEMO',
                     ]),
+                    'lock_data' => $lockData,
                 ]);
             }
 
             return view('welcome', [
                 'hardware' => $hw,
                 'verification' => $verification,
+                'lock_data' => $lockData,
             ]);
         }
 
         if ($verification['status'] === 'NOT_INSTALLED') {
+            $serverVerification = $this->usbLockService->verifySerialWithServer(
+                $hw['serial_number'] ?? '',
+                $hw['model'] ?? null
+            );
+
             return view('usb.install', [
                 'hardware' => $hw,
                 'verification' => $verification,
+                'server_verification' => $serverVerification,
+                'lock_data' => $lockData,
             ]);
         }
 
@@ -59,12 +76,14 @@ class UsbLockController extends Controller
             return response()->view('usb.lockout', [
                 'hardware' => $hw,
                 'verification' => $verification,
+                'lock_data' => $lockData,
             ], 403);
         }
 
         return view('welcome', [
             'hardware' => $hw,
             'verification' => $verification,
+            'lock_data' => $lockData,
         ]);
     }
 
@@ -85,8 +104,32 @@ class UsbLockController extends Controller
             ], 422);
         }
 
+        $hw = $this->usbLockService->getHardwareInfo();
+        if (! $hw['found'] || empty($hw['serial_number'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No physical USB storage hardware detected. Please ensure your USB pendrive is connected.',
+            ], 400);
+        }
+
+        // Verify that this physical USB serial number has been registered and authorized on our central server
+        $serverVerification = $this->usbLockService->verifySerialWithServer($hw['serial_number'], $hw['model']);
+        if (! $serverVerification['verified']) {
+            return response()->json([
+                'success' => false,
+                'status' => $serverVerification['status'],
+                'message' => $serverVerification['message'],
+            ], 403);
+        }
+
+        $client = $serverVerification['client'] ?? [];
+
         $result = $this->usbLockService->installAndLock([
-            'admin_name' => $request->input('admin_name', 'Authorized Administrator'),
+            'admin_name' => $request->input('admin_name', $client['client_name'] ?? 'Authorized Administrator'),
+            'client_id' => $client['id'] ?? null,
+            'client_name' => $client['client_name'] ?? null,
+            'shop_name' => $client['shop_name'] ?? null,
+            'server_token' => $serverVerification['server_token'] ?? null,
         ]);
 
         if (! $result['success']) {
@@ -97,6 +140,7 @@ class UsbLockController extends Controller
             'success' => true,
             'message' => $result['message'],
             'lock_data' => $result['lock_data'],
+            'client' => $client,
             'redirect' => route('home'),
         ]);
     }

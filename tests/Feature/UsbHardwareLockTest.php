@@ -2,12 +2,17 @@
 
 namespace Tests\Feature;
 
+use App\Models\Client;
+use App\Models\PendriveRegistration;
 use App\Services\UsbLockService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
 use Tests\TestCase;
 
 class UsbHardwareLockTest extends TestCase
 {
+    use RefreshDatabase;
+
     protected UsbLockService $usbLockService;
 
     protected function setUp(): void
@@ -36,14 +41,48 @@ class UsbHardwareLockTest extends TestCase
         $response->assertStatus(200);
         $response->assertSee('USB Hardware Serial Lock');
         $response->assertSee('First-Time Installation Required');
-        $response->assertSee('LOCK TO THIS USB PENDRIVE');
+        $response->assertSee('Physical Hardware Serial Number');
     }
 
     /**
-     * Test USB Hardware Serial Lock installation endpoint.
+     * Test that an unregistered USB pendrive cannot be installed and returns 403.
+     */
+    public function test_unregistered_usb_serial_is_rejected_on_installation(): void
+    {
+        $response = $this->postJson('/api/usb/install', [
+            'admin_name' => 'Intruder',
+            'confirm_lock' => true,
+        ]);
+
+        $response->assertStatus(403);
+        $response->assertJson([
+            'success' => false,
+            'status' => 'NOT_REGISTERED',
+        ]);
+        $this->assertFalse($this->usbLockService->isInstalled());
+    }
+
+    /**
+     * Test USB Hardware Serial Lock installation endpoint when registered on server.
      */
     public function test_can_install_and_bind_to_usb_hardware_serial(): void
     {
+        $client = Client::create([
+            'client_name' => 'Test Jeweller',
+            'shop_name' => 'Royal Gems & Co.',
+            'mobile_number' => '9876543210',
+            'email' => 'jewel@example.com',
+            'status' => 'active',
+        ]);
+
+        PendriveRegistration::create([
+            'client_id' => $client->id,
+            'serial_number' => 'SANDISK_HW_12345678',
+            'pendrive_model' => 'SanDisk Ultra USB 3.0',
+            'status' => 'active',
+            'registered_at' => now(),
+        ]);
+
         $response = $this->postJson('/api/usb/install', [
             'admin_name' => 'Test Jeweller',
             'confirm_lock' => true,
@@ -52,12 +91,17 @@ class UsbHardwareLockTest extends TestCase
         $response->assertStatus(200);
         $response->assertJson([
             'success' => true,
+            'client' => [
+                'shop_name' => 'Royal Gems & Co.',
+                'client_name' => 'Test Jeweller',
+            ],
         ]);
 
         $this->assertTrue($this->usbLockService->isInstalled());
 
         $lockData = $this->usbLockService->getLockData();
         $this->assertNotEmpty($lockData['locked_serial']);
+        $this->assertEquals('Royal Gems & Co.', $lockData['shop_name']);
         $this->assertNotEmpty($lockData['signature']);
         $this->assertEquals('Test Jeweller', $lockData['installed_by']);
 

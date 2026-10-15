@@ -2,12 +2,19 @@
 
 namespace App\Services;
 
+use App\Models\PendriveRegistration;
 use Exception;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class UsbLockService
 {
+    /**
+     * Optional fake server verification response for testing.
+     */
+    public static ?array $fakeServerVerification = null;
+
     /**
      * Secret salt used for HMAC digital signature of the lock token.
      */
@@ -69,6 +76,7 @@ class UsbLockService
     {
         self::$fakeHardwareInfo = null;
         self::$fakeBuildEnvironment = null;
+        self::$fakeServerVerification = null;
     }
 
     /**
@@ -360,6 +368,10 @@ POWERSHELL;
             'disk_size' => $hw['size'],
             'installed_at' => $now,
             'installed_by' => $options['admin_name'] ?? 'Authorized Administrator',
+            'client_id' => $options['client_id'] ?? null,
+            'client_name' => $options['client_name'] ?? null,
+            'shop_name' => $options['shop_name'] ?? null,
+            'server_token' => $options['server_token'] ?? null,
             'app_name' => config('app.name', 'ItroveJewel'),
             'signature' => $signature,
         ];
@@ -393,7 +405,140 @@ POWERSHELL;
     }
 
     /**
-     * Perform the comprehensive Hardware Serial Lock verification.
+     * Verify a physical USB hardware serial number against the central ItroveJewel server.
+     *
+     * @return array{
+     *     verified: bool,
+     *     status: string,
+     *     message: string,
+     *     client?: array{
+     *         id: int,
+     *         client_name: string,
+     *         shop_name: string,
+     *         mobile_number: string,
+     *         email: string
+     *     },
+     *     pendrive?: array<string, mixed>,
+     *     server_token?: string
+     * }
+     */
+    public function verifySerialWithServer(string $serialNumber, ?string $model = null): array
+    {
+        if (self::$fakeServerVerification !== null) {
+            return self::$fakeServerVerification;
+        }
+
+        $serial = trim($serialNumber);
+        if (empty($serial)) {
+            return [
+                'verified' => false,
+                'status' => 'INVALID_SERIAL',
+                'message' => 'No hardware serial number detected to verify.',
+            ];
+        }
+
+        $remoteServerUrl = config('app.license_server_url');
+
+        // 1. If configured to call a remote Central Web Server
+        if (! empty($remoteServerUrl)) {
+            try {
+                $response = Http::timeout(6)->asJson()->post($remoteServerUrl, [
+                    'serial_number' => $serial,
+                    'model' => $model,
+                ]);
+
+                $data = $response->json();
+                if ($response->successful() && is_array($data) && ! empty($data['authorized'])) {
+                    return [
+                        'verified' => true,
+                        'status' => $data['status'] ?? 'ACTIVE',
+                        'message' => $data['message'] ?? 'Verified with Central Server',
+                        'client' => $data['client'] ?? [],
+                        'pendrive' => $data['pendrive'] ?? [],
+                        'server_token' => $data['server_token'] ?? null,
+                    ];
+                }
+
+                return [
+                    'verified' => false,
+                    'status' => $data['status'] ?? 'NOT_REGISTERED',
+                    'message' => $data['message'] ?? 'USB Hardware Serial is not authorized by the central server.',
+                ];
+            } catch (Exception $e) {
+                return [
+                    'verified' => false,
+                    'status' => 'SERVER_UNREACHABLE',
+                    'message' => 'Unable to connect to Central ItroveJewel License Server: '.$e->getMessage(),
+                ];
+            }
+        }
+
+        // 2. Direct database verification (for local web server, testing, or integrated deployment)
+        try {
+            $registration = PendriveRegistration::with('client')
+                ->where('serial_number', $serial)
+                ->first();
+
+            if (! $registration) {
+                return [
+                    'verified' => false,
+                    'status' => 'NOT_REGISTERED',
+                    'message' => "USB Hardware Serial [{$serial}] is not registered in the ItroveJewel central system. Please register this pendrive to a client in the Admin Panel.",
+                ];
+            }
+
+            if ($registration->status !== 'active') {
+                return [
+                    'verified' => false,
+                    'status' => 'REVOKED',
+                    'message' => "USB Hardware Serial [{$serial}] has been REVOKED by the administrator.",
+                ];
+            }
+
+            $client = $registration->client;
+            if (! $client || $client->status !== 'active') {
+                return [
+                    'verified' => false,
+                    'status' => 'CLIENT_INACTIVE',
+                    'message' => "Client account for {$client?->shop_name} is suspended or inactive.",
+                ];
+            }
+
+            $registration->increment('verification_count');
+            $registration->update([
+                'last_verified_at' => now(),
+            ]);
+
+            $appKey = config('app.key');
+            $serverToken = hash_hmac('sha256', "SERVER_APPROVED::{$serial}::{$client->id}::{$client->email}", $appKey);
+
+            return [
+                'verified' => true,
+                'status' => 'ACTIVE',
+                'message' => "USB Hardware Serial verified for {$client->shop_name}.",
+                'client' => [
+                    'id' => $client->id,
+                    'client_name' => $client->client_name,
+                    'shop_name' => $client->shop_name,
+                    'mobile_number' => $client->mobile_number,
+                    'email' => $client->email,
+                ],
+                'pendrive' => [
+                    'serial_number' => $registration->serial_number,
+                    'label' => $registration->label,
+                    'model' => $registration->pendrive_model,
+                ],
+                'server_token' => $serverToken,
+            ];
+        } catch (Exception $e) {
+            return [
+                'verified' => false,
+                'status' => 'DB_ERROR',
+                'message' => 'Error verifying pendrive: '.$e->getMessage(),
+            ];
+        }
+    }
+
     /**
      * Optional fake build environment toggle for testing.
      */

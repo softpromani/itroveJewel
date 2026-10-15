@@ -186,4 +186,3 @@ return [
      */
     'binary_path' => env('NATIVEPHP_PHP_BINARY_PATH', null),
 ];
-

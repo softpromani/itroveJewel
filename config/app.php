@@ -123,4 +123,18 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Admin Panel & License Server Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Controls whether the web-based Admin Panel is enabled, and points to the
+    | central license verification server for USB hardware lock authorization.
+    |
+    */
+
+    'enable_admin_panel' => (bool) env('APP_ENABLE_ADMIN_PANEL', true),
+
+    'license_server_url' => env('LICENSE_SERVER_URL', null),
+
 ];
