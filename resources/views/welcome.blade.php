@@ -49,17 +49,26 @@
             </div>
         </div>
 
-        <!-- Security Badge: USB Hardware Locked -->
+        <!-- Security Badge -->
         <div class="flex items-center space-x-3">
-            <div class="flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-emerald-950/70 border border-emerald-500/40 text-xs">
-                <span class="relative flex h-2 w-2">
-                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                </span>
-                <span class="text-emerald-300 font-semibold font-mono-code">
-                    USB SERIAL LOCK: ACTIVE
-                </span>
-            </div>
+            @if(($verification['status'] ?? '') === 'DEV_BYPASS')
+                <div class="flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-cyan-950/70 border border-cyan-500/40 text-xs">
+                    <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+                    <span class="text-cyan-300 font-semibold font-mono-code">
+                        DEV MODE: HARDWARE LOCK BYPASSED
+                    </span>
+                </div>
+            @else
+                <div class="flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-emerald-950/70 border border-emerald-500/40 text-xs">
+                    <span class="relative flex h-2 w-2">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    <span class="text-emerald-300 font-semibold font-mono-code">
+                        USB SERIAL LOCK: ACTIVE
+                    </span>
+                </div>
+            @endif
         </div>
     </header>
 
@@ -74,37 +83,53 @@
             </div>
 
             <div>
-                <span class="text-[11px] font-bold tracking-widest text-emerald-400 uppercase bg-emerald-950/70 border border-emerald-500/40 px-3 py-1 rounded-full">
-                    Hardware License Verified
-                </span>
-                <h2 class="text-2xl font-bold text-white tracking-wide mt-3">ItroveJewel Secured Workspace</h2>
-                <p class="text-xs text-slate-400 mt-1 max-w-md mx-auto">
-                    This software copy is bound to your physical USB pendrive hardware serial number.
-                </p>
+                @if(($verification['status'] ?? '') === 'DEV_BYPASS')
+                    <span class="text-[11px] font-bold tracking-widest text-cyan-400 uppercase bg-cyan-950/70 border border-cyan-500/40 px-3 py-1 rounded-full">
+                        Developer Mode Enabled
+                    </span>
+                    <h2 class="text-2xl font-bold text-white tracking-wide mt-3">Developer Workspace (Unlocked)</h2>
+                    <p class="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+                        USB Hardware Lock is active strictly in packaged build files. Developers can work on any PC without hardware locks.
+                    </p>
+                @else
+                    <span class="text-[11px] font-bold tracking-widest text-emerald-400 uppercase bg-emerald-950/70 border border-emerald-500/40 px-3 py-1 rounded-full">
+                        Hardware License Verified
+                    </span>
+                    <h2 class="text-2xl font-bold text-white tracking-wide mt-3">ItroveJewel Secured Workspace</h2>
+                    <p class="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+                        This software copy is bound to your physical USB pendrive hardware serial number.
+                    </p>
+                @endif
             </div>
 
-            <!-- Active Hardware Binding Details -->
+            <!-- Hardware Information Panel -->
             <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 text-left space-y-3">
                 <div class="flex items-center justify-between text-xs pb-2 border-b border-slate-800/80">
                     <span class="text-slate-400 font-semibold flex items-center space-x-1.5">
                         <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
                         </svg>
-                        <span>Active Hardware Lock Binding</span>
+                        <span>Storage & Hardware Details</span>
                     </span>
-                    <span class="text-emerald-400 font-mono-code text-[11px]">Drive: {{ $hardware['drive_letter'] }}:</span>
+                    <span class="text-slate-400 font-mono-code text-[11px]">Drive: {{ $hardware['drive_letter'] }}:</span>
                 </div>
 
                 <div class="p-3.5 rounded-xl bg-slate-950/70 border border-amber-500/30 flex items-center justify-between">
                     <div>
-                        <span class="text-[10px] uppercase font-bold text-amber-400">Bound Physical USB Serial</span>
+                        <span class="text-[10px] uppercase font-bold text-amber-400">Current Physical Drive Serial</span>
                         <p class="font-mono-code text-sm font-bold text-white mt-0.5 select-all">
-                            {{ $verification['locked_serial'] ?? $hardware['serial_number'] }}
+                            {{ $hardware['serial_number'] ?: 'NONE_DETECTED' }}
                         </p>
                     </div>
-                    <span class="text-[10px] font-semibold text-emerald-400 bg-emerald-950/80 border border-emerald-500/40 px-2.5 py-1 rounded-full">
-                        MATCHED * UNLOCKED
-                    </span>
+                    @if(($verification['status'] ?? '') === 'DEV_BYPASS')
+                        <span class="text-[10px] font-semibold text-cyan-400 bg-cyan-950/80 border border-cyan-500/40 px-2.5 py-1 rounded-full">
+                            DEV BYPASS
+                        </span>
+                    @else
+                        <span class="text-[10px] font-semibold text-emerald-400 bg-emerald-950/80 border border-emerald-500/40 px-2.5 py-1 rounded-full">
+                            MATCHED * UNLOCKED
+                        </span>
+                    @endif
                 </div>
 
                 <div class="grid grid-cols-2 gap-3 text-xs">
@@ -116,12 +141,26 @@
                     </div>
 
                     <div class="p-3 rounded-xl bg-slate-950/50 border border-slate-800/70">
-                        <span class="text-slate-500 text-[10px] uppercase font-semibold block">Security Protection</span>
-                        <span class="text-emerald-400 font-medium block mt-0.5">
-                            HMAC Anti-Cloning Shield
+                        <span class="text-slate-500 text-[10px] uppercase font-semibold block">Lock Policy</span>
+                        <span class="text-slate-300 font-medium block mt-0.5">
+                            {{ ($verification['status'] ?? '') === 'DEV_BYPASS' ? 'Packaged Build Only' : 'Hardware Locked (HMAC-SHA256)' }}
                         </span>
                     </div>
                 </div>
+
+                @if(($verification['status'] ?? '') === 'DEV_BYPASS')
+                    <div class="p-3 rounded-xl bg-slate-950/90 border border-slate-800 flex items-center justify-between text-xs">
+                        <span class="text-slate-400 text-[11px]">Preview Built-in Screens:</span>
+                        <div class="flex items-center space-x-2">
+                            <a href="{{ route('home', ['preview' => 'install']) }}" class="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 text-[11px] font-semibold transition">
+                                Test Install Wizard
+                            </a>
+                            <a href="{{ route('home', ['preview' => 'lockout']) }}" class="px-2.5 py-1 rounded-lg bg-red-500/20 text-red-300 border border-red-500/40 hover:bg-red-500/30 text-[11px] font-semibold transition">
+                                Test Lockout Screen
+                            </a>
+                        </div>
+                    </div>
+                @endif
             </div>
 
             <!-- Features Summary Cards -->
@@ -134,8 +173,8 @@
 
                 <div class="p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-1">
                     <div class="w-2.5 h-2.5 rounded-full bg-emerald-400"></div>
-                    <p class="text-xs font-bold text-white">Copy-Protection</p>
-                    <p class="text-[11px] text-slate-400 leading-tight">Blocks execution if copied to unauthorized pendrives or PCs.</p>
+                    <p class="text-xs font-bold text-white">Build Protection</p>
+                    <p class="text-[11px] text-slate-400 leading-tight">Blocks execution if copied from the original USB drive.</p>
                 </div>
 
                 <div class="p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-1">
@@ -150,7 +189,7 @@
     <!-- Footer -->
     <footer class="border-t border-slate-800/80 pt-3 text-center text-xs text-slate-500 flex items-center justify-between max-w-5xl w-full mx-auto">
         <span>ItroveJewel &copy; {{ date('Y') }} * Portable Jewel Management System</span>
-        <span class="font-mono text-slate-400 text-[11px]">Hardware Serial: {{ $verification['locked_serial'] ?? $hardware['serial_number'] }}</span>
+        <span class="font-mono text-slate-400 text-[11px]">Status: {{ $verification['status'] ?? 'ACTIVE' }}</span>
     </footer>
 
 </body>

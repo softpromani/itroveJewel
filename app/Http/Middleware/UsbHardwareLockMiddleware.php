@@ -20,6 +20,11 @@ class UsbHardwareLockMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
+        // Only enforce hardware lock in packaged build files, not on developer workstations
+        if (! $this->usbLockService->isBuildEnvironment()) {
+            return $next($request);
+        }
+
         // Exclude internal installer / status routes to avoid circular blocks
         if ($request->is('api/usb/*') || $request->is('usb/*') || $request->is('/')) {
             return $next($request);

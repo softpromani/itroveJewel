@@ -68,6 +68,7 @@ class UsbLockService
     public static function resetFake(): void
     {
         self::$fakeHardwareInfo = null;
+        self::$fakeBuildEnvironment = null;
     }
 
     /**
@@ -393,10 +394,47 @@ POWERSHELL;
 
     /**
      * Perform the comprehensive Hardware Serial Lock verification.
+    /**
+     * Optional fake build environment toggle for testing.
+     */
+    public static ?bool $fakeBuildEnvironment = null;
+
+    /**
+     * Determine if the application is running in a packaged build environment
+     * or if the USB Hardware Lock is explicitly enabled.
+     */
+    public function isBuildEnvironment(): bool
+    {
+        if (self::$fakeBuildEnvironment !== null) {
+            return self::$fakeBuildEnvironment;
+        }
+
+        // 1. Explicit env configuration overrides (e.g. testing or forced testing in dev)
+        $envSetting = env('USB_HARDWARE_LOCK_ENABLED', $_ENV['USB_HARDWARE_LOCK_ENABLED'] ?? $_SERVER['USB_HARDWARE_LOCK_ENABLED'] ?? null);
+        if ($envSetting !== null) {
+            return filter_var($envSetting, FILTER_VALIDATE_BOOLEAN);
+        }
+
+        // 2. Packaged Build Path Signature (e.g. inside USB_READY_ItroveJewel/resources/build/app)
+        $base = base_path();
+        $isInsideBuildApp = str_contains($base, 'resources'.DIRECTORY_SEPARATOR.'build'.DIRECTORY_SEPARATOR.'app');
+
+        // 3. Parent executable presence (itrovejewel.exe alongside resources/)
+        $packagedExe = dirname(dirname(dirname($base))).DIRECTORY_SEPARATOR.'itrovejewel.exe';
+        if ($isInsideBuildApp && File::exists($packagedExe)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Perform the comprehensive Hardware Serial Lock verification.
      *
      * @return array{
-     *     status: 'NOT_INSTALLED'|'ACTIVE'|'LOCKOUT'|'TAMPERED',
+     *     status: 'NOT_INSTALLED'|'ACTIVE'|'LOCKOUT'|'TAMPERED'|'DEV_BYPASS',
      *     is_authorized: bool,
+     *     is_build: bool,
      *     current_drive: string,
      *     current_serial: string,
      *     current_model: string,
@@ -409,6 +447,24 @@ POWERSHELL;
     public function verifyLock(?array $currentHw = null): array
     {
         $currentHw = $currentHw ?? $this->getHardwareInfo();
+        $isBuild = $this->isBuildEnvironment();
+
+        // If not in a packaged build file, allow developers to work freely on any system
+        if (! $isBuild) {
+            return [
+                'status' => 'DEV_BYPASS',
+                'is_authorized' => true,
+                'is_build' => false,
+                'current_drive' => $currentHw['drive_letter'],
+                'current_serial' => $currentHw['serial_number'],
+                'current_model' => $currentHw['model'],
+                'locked_serial' => null,
+                'locked_model' => null,
+                'installed_at' => null,
+                'message' => 'Development mode: USB Hardware Lock bypassed. Active only in packaged build files.',
+            ];
+        }
+
         $lockData = $this->getLockData();
 
         // 1. First-time setup required
@@ -416,6 +472,7 @@ POWERSHELL;
             return [
                 'status' => 'NOT_INSTALLED',
                 'is_authorized' => false,
+                'is_build' => true,
                 'current_drive' => $currentHw['drive_letter'],
                 'current_serial' => $currentHw['serial_number'],
                 'current_model' => $currentHw['model'],
@@ -437,6 +494,7 @@ POWERSHELL;
             return [
                 'status' => 'TAMPERED',
                 'is_authorized' => false,
+                'is_build' => true,
                 'current_drive' => $currentHw['drive_letter'],
                 'current_serial' => $currentHw['serial_number'],
                 'current_model' => $currentHw['model'],
@@ -454,6 +512,7 @@ POWERSHELL;
             return [
                 'status' => 'LOCKOUT',
                 'is_authorized' => false,
+                'is_build' => true,
                 'current_drive' => $currentHw['drive_letter'],
                 'current_serial' => $currentSerial ?: 'NOT_DETECTED',
                 'current_model' => $currentHw['model'],
@@ -468,6 +527,7 @@ POWERSHELL;
         return [
             'status' => 'ACTIVE',
             'is_authorized' => true,
+            'is_build' => true,
             'current_drive' => $currentHw['drive_letter'],
             'current_serial' => $currentSerial,
             'current_model' => $currentHw['model'],

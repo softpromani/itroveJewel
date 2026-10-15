@@ -14,6 +14,7 @@ class UsbHardwareLockTest extends TestCase
     {
         parent::setUp();
         UsbLockService::fake();
+        UsbLockService::$fakeBuildEnvironment = true;
         $this->usbLockService = app(UsbLockService::class);
         $this->usbLockService->resetLock();
     }
@@ -140,5 +141,25 @@ class UsbHardwareLockTest extends TestCase
         $response->assertJson(['success' => true]);
 
         $this->assertFalse($this->usbLockService->isInstalled());
+    }
+
+    /**
+     * Test that developer systems bypass the hardware lock so developers on different machines are never locked out.
+     */
+    public function test_developer_environment_bypasses_hardware_lock(): void
+    {
+        UsbLockService::$fakeBuildEnvironment = false;
+
+        $response = $this->get('/');
+
+        $response->assertStatus(200);
+        $response->assertSee('Developer Workspace (Unlocked)');
+        $response->assertSee('DEV MODE: HARDWARE LOCK BYPASSED');
+        $response->assertDontSee('Unauthorized Hardware Lockout');
+
+        $verification = $this->usbLockService->verifyLock();
+        $this->assertEquals('DEV_BYPASS', $verification['status']);
+        $this->assertTrue($verification['is_authorized']);
+        $this->assertFalse($verification['is_build']);
     }
 }

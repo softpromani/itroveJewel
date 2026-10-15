@@ -18,10 +18,35 @@ class UsbLockController extends Controller
      * Main entrypoint for web requests.
      * Evaluates lock status and displays the Installation Wizard, Lockout, or Main App.
      */
-    public function index(): View|Response
+    public function index(Request $request): View|Response
     {
         $hw = $this->usbLockService->getHardwareInfo();
         $verification = $this->usbLockService->verifyLock($hw);
+
+        // Developer Mode: allow developers to work freely, with optional previews
+        if ($verification['status'] === 'DEV_BYPASS') {
+            if ($request->query('preview') === 'install') {
+                return view('usb.install', [
+                    'hardware' => $hw,
+                    'verification' => array_merge($verification, ['status' => 'NOT_INSTALLED']),
+                ]);
+            }
+
+            if ($request->query('preview') === 'lockout') {
+                return view('usb.lockout', [
+                    'hardware' => $hw,
+                    'verification' => array_merge($verification, [
+                        'status' => 'LOCKOUT',
+                        'locked_serial' => 'PREVIEW_USB_SERIAL_DEMO',
+                    ]),
+                ]);
+            }
+
+            return view('welcome', [
+                'hardware' => $hw,
+                'verification' => $verification,
+            ]);
+        }
 
         if ($verification['status'] === 'NOT_INSTALLED') {
             return view('usb.install', [
