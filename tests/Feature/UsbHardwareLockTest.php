@@ -1,0 +1,144 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Services\UsbLockService;
+use Illuminate\Support\Facades\File;
+use Tests\TestCase;
+
+class UsbHardwareLockTest extends TestCase
+{
+    protected UsbLockService $usbLockService;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        UsbLockService::fake();
+        $this->usbLockService = app(UsbLockService::class);
+        $this->usbLockService->resetLock();
+    }
+
+    protected function tearDown(): void
+    {
+        $this->usbLockService->resetLock();
+        UsbLockService::resetFake();
+        parent::tearDown();
+    }
+
+    /**
+     * Test that an uninstalled application renders the first-time installation wizard.
+     */
+    public function test_uninstalled_application_shows_first_time_installation_wizard(): void
+    {
+        $response = $this->get('/');
+
+        $response->assertStatus(200);
+        $response->assertSee('USB Hardware Serial Lock');
+        $response->assertSee('First-Time Installation Required');
+        $response->assertSee('LOCK TO THIS USB PENDRIVE');
+    }
+
+    /**
+     * Test USB Hardware Serial Lock installation endpoint.
+     */
+    public function test_can_install_and_bind_to_usb_hardware_serial(): void
+    {
+        $response = $this->postJson('/api/usb/install', [
+            'admin_name' => 'Test Jeweller',
+            'confirm_lock' => true,
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'success' => true,
+        ]);
+
+        $this->assertTrue($this->usbLockService->isInstalled());
+
+        $lockData = $this->usbLockService->getLockData();
+        $this->assertNotEmpty($lockData['locked_serial']);
+        $this->assertNotEmpty($lockData['signature']);
+        $this->assertEquals('Test Jeweller', $lockData['installed_by']);
+
+        // Now visiting '/' should render the active secured workspace
+        $webResponse = $this->get('/');
+        $webResponse->assertStatus(200);
+        $webResponse->assertSee('ItroveJewel Secured Workspace');
+        $webResponse->assertSee('USB SERIAL LOCK: ACTIVE');
+    }
+
+    /**
+     * Test copy-protection lockout when software is copied to an unauthorized drive serial.
+     */
+    public function test_unauthorized_hardware_serial_triggers_lockout(): void
+    {
+        // 1. Lock to authorized fake serial
+        $this->usbLockService->installAndLock(['admin_name' => 'Original Admin']);
+
+        // 2. Simulate copying to another pendrive or C: drive with a different serial
+        UsbLockService::fake([
+            'found' => true,
+            'drive_letter' => 'F',
+            'model' => 'Unauthorized Cloned USB Drive',
+            'serial_number' => 'PIRATED_COPIED_SERIAL_99999',
+            'bus_type' => 'USB',
+            'is_usb' => true,
+            'unique_id' => 'USB\\VID_0000&PID_0000\\PIRATED_COPIED_SERIAL_99999',
+            'size' => 32000000000,
+            'size_formatted' => '32 GB',
+            'error' => null,
+        ]);
+
+        // 3. Verify that accessing the application triggers 403 Lockout
+        $response = $this->get('/');
+
+        $response->assertStatus(403);
+        $response->assertSee('Unauthorized Hardware Lockout');
+        $response->assertSee('PIRATED_COPIED_SERIAL_99999');
+        $response->assertSee('ACCESS DENIED');
+    }
+
+    /**
+     * Test tampering detection if an attacker manually modifies the lock file serial.
+     */
+    public function test_tampered_lock_file_fails_signature_and_blocks_access(): void
+    {
+        // 1. Install lock
+        $this->usbLockService->installAndLock();
+
+        // 2. Tamper with the lock file (attacker attempts to change the locked serial to their new drive)
+        $paths = $this->usbLockService->getLockFilePaths();
+        foreach ($paths as $path) {
+            if (File::exists($path)) {
+                $data = json_decode(File::get($path), true);
+                $data['locked_serial'] = 'ATTACKER_INJECTED_SERIAL';
+                // (Note: attacker does not have secret salt/key so signature remains old)
+                File::put($path, json_encode($data));
+            }
+        }
+
+        // 3. Verification must fail with TAMPERED and block access
+        $verification = $this->usbLockService->verifyLock();
+        $this->assertEquals('TAMPERED', $verification['status']);
+        $this->assertFalse($verification['is_authorized']);
+
+        $response = $this->get('/');
+        $response->assertStatus(403);
+        $response->assertSee('Unauthorized Hardware Lockout');
+    }
+
+    /**
+     * Test resetting the hardware lock.
+     */
+    public function test_can_reset_hardware_lock(): void
+    {
+        $this->usbLockService->installAndLock();
+        $this->assertTrue($this->usbLockService->isInstalled());
+
+        $response = $this->postJson('/api/usb/reset');
+        $response->assertStatus(200);
+        $response->assertJson(['success' => true]);
+
+        $this->assertFalse($this->usbLockService->isInstalled());
+    }
+}
