@@ -44,19 +44,37 @@ php artisan test --compact
 
 ### Step 2: Publishing the Release on the Central Server
 
+After deploying new code to your central server (via git pull or deployment script), the admin can release the update to clients using **either the Web Admin Dashboard or the command line**:
+
+#### Method A: Directly from the Web Admin Portal (Recommended - No Terminal Needed!)
+1. Open your Web Admin Portal in your browser:
+   - Navigate to **"Publish Client Updates"** from the left sidebar (`/admin/releases`).
+   - Or click **"PUBLISH CLIENT UPDATE"** from the top of the Clients dashboard.
+2. The dashboard will automatically suggest the next version number based on your server codebase.
+3. Fill in the release form:
+   - **New Release Version:** (e.g. `1.1.0` or `1.2.0`).
+   - **Release Title:** (e.g. `ItroveJewel v1.2.0 Luxury Billing & GST Release`).
+   - **Release Notes & Highlights:** Type features on separate lines (e.g. `Added GST Invoice PDF export`, `Optimized barcode scanning`).
+   - Check **"Make this release live immediately for all clients"**.
+4. Click **"Publish Release to All Clients"**.
+   - The server packages clean application files into `storage/app/releases/itrovejewel-update-{version}.zip`.
+   - Computes SHA-256 signature and registers the release.
+   - You can pause, activate, or download the ZIP directly from the dashboard catalog.
+
+#### Method B: Via Terminal Command
 Run the `app:publish-release` Artisan command on your central server:
 
 ```powershell
 php artisan app:publish-release <version> --title="<Release Title>" --notes="<Feature 1,Feature 2,Feature 3>"
 ```
 
-#### Example:
+##### Example:
 ```powershell
 php artisan app:publish-release 1.2.0 --title="ItroveJewel v1.2.0 Luxury Billing & GST Release" --notes="Added GST Invoice PDF export,Optimized Barcode scanning speed,Auto-backup database improvements"
 ```
 
-#### What this command does automatically:
-1. Compresses clean application files into `storage/app/releases/itrovejewel-update-1.2.0.zip`.
+#### What both methods do automatically:
+1. Compresses clean application files into `storage/app/releases/itrovejewel-update-{version}.zip`.
 2. Automatically excludes all Admin files, git logs, tests, and customer database files.
 3. Computes the **SHA-256 cryptographic checksum** and file size.
 4. Registers the release in the central server database (`database/admin.sqlite`).
@@ -125,10 +143,21 @@ Whenever you onboard a new jewelry client and prepare a new USB pendrive for the
 
 ---
 
-### Step 3: Generate Fresh Portable USB Package
+### Step 3: Generate & Download Fresh Portable USB Package
 
-Run the fresh packaging command in your terminal:
+You can create and download fresh software packages in **two easy ways**:
 
+#### Method A: Directly from the Web Admin Portal (No Terminal Needed!)
+1. In your Admin Portal, click **"Fresh USB Installers"** from the left sidebar (`/admin/packages`).
+2. In the **"Create New Fresh Installation Software"** form:
+   - Enter your **Version Name** (e.g. `1.0.0` or `1.1.0`).
+   - Select **Complete Portable USB Drive Bundle (.zip)**.
+   - Click **"Generate Fresh Installation ZIP"**.
+3. Once generated, it appears in your table on the server:
+   - Click the gold **"⬇️ Download ZIP"** button to download the fresh installation `.zip` directly to your computer!
+4. Extract the downloaded ZIP directly onto the customer's USB drive.
+
+#### Method B: Via Terminal Command
 ```powershell
 php artisan app:package-portable --fresh
 ```

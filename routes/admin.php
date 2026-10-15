@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminClientController;
+use App\Http\Controllers\Admin\AdminPackageController;
 use App\Http\Controllers\Admin\AdminPendriveController;
+use App\Http\Controllers\Admin\AdminReleaseController;
 use App\Http\Controllers\Api\LicenseVerificationController;
 use App\Http\Controllers\Api\UpdateServerController;
 use App\Http\Middleware\EnsureNotAppBuildMiddleware;
@@ -34,4 +36,17 @@ Route::middleware([EnsureNotAppBuildMiddleware::class])->prefix('admin')->name('
     Route::post('clients/{client}/pendrives', [AdminPendriveController::class, 'store'])->name('clients.pendrives.store');
     Route::post('pendrives/{pendrive}/toggle', [AdminPendriveController::class, 'toggleStatus'])->name('pendrives.toggle');
     Route::delete('pendrives/{pendrive}', [AdminPendriveController::class, 'destroy'])->name('pendrives.destroy');
+
+    // Fresh Portable Software Packaging & Downloads
+    Route::get('packages', [AdminPackageController::class, 'index'])->name('packages.index');
+    Route::post('packages/create-fresh', [AdminPackageController::class, 'createFresh'])->name('packages.create');
+    Route::get('packages/{package}/download', [AdminPackageController::class, 'download'])->name('packages.download');
+    Route::delete('packages/{package}', [AdminPackageController::class, 'destroy'])->name('packages.destroy');
+
+    // Client Updates & Release Publishing
+    Route::get('releases', [AdminReleaseController::class, 'index'])->name('releases.index');
+    Route::post('releases', [AdminReleaseController::class, 'store'])->name('releases.store');
+    Route::get('releases/{release}/download', [AdminReleaseController::class, 'download'])->name('releases.download');
+    Route::post('releases/{release}/toggle', [AdminReleaseController::class, 'toggle'])->name('releases.toggle');
+    Route::delete('releases/{release}', [AdminReleaseController::class, 'destroy'])->name('releases.destroy');
 });

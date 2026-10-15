@@ -21,8 +21,10 @@ abstract class TestCase extends BaseTestCase
      */
     protected function beforeRefreshingDatabase()
     {
+        $testAdminDb = database_path('test_admin.sqlite');
+        config(['database.connections.admin.database' => $testAdminDb]);
+
         if (! static::$adminMigrated && file_exists(database_path('migrations/admin'))) {
-            $testAdminDb = database_path('test_admin.sqlite');
             if (! file_exists($testAdminDb)) {
                 touch($testAdminDb);
             }

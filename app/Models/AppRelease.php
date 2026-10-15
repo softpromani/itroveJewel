@@ -29,6 +29,7 @@ class AppRelease extends Model
         'file_path',
         'file_hash',
         'file_size',
+        'download_count',
         'min_supported_version',
         'is_active',
     ];
@@ -42,7 +43,24 @@ class AppRelease extends Model
         'release_notes' => 'array',
         'is_active' => 'boolean',
         'file_size' => 'integer',
+        'download_count' => 'integer',
     ];
+
+    /**
+     * Get human-readable formatted file size string.
+     */
+    public function getFormattedFileSizeAttribute(): string
+    {
+        $bytes = (int) $this->file_size;
+        if ($bytes >= 1048576) {
+            return round($bytes / 1048576, 2).' MB';
+        }
+        if ($bytes >= 1024) {
+            return round($bytes / 1024, 2).' KB';
+        }
+
+        return $bytes.' B';
+    }
 
     /**
      * Get the latest active release.

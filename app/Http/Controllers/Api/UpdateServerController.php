@@ -89,6 +89,8 @@ class UpdateServerController extends Controller
             ], 404);
         }
 
+        $release->increment('download_count');
+
         return response()->download($release->file_path, "itrovejewel-update-{$version}.zip", [
             'Content-Type' => 'application/zip',
         ]);

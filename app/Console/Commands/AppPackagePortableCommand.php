@@ -80,6 +80,8 @@ class AppPackagePortableCommand extends Command
         'database/admin.sqlite*',
         'database/test_admin.sqlite*',
         'database/migrations/admin*',
+        'storage/app/fresh_installers*',
+        'storage/app/releases*',
         '*/tests/*',
         '*.git*',
     ];

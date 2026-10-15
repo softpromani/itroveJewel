@@ -268,6 +268,42 @@
                     </div>
                 </div>
 
+                <!-- Menu Item: Fresh USB Installers & Packages -->
+                <div class="relative group">
+                    <a href="{{ route('admin.packages.index') }}" 
+                        class="sidebar-item flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition border-l-2 {{ request()->routeIs('admin.packages.*') ? 'bg-amber-500/10 text-amber-300 border-amber-400 sidebar-nav-active' : 'border-transparent text-slate-400 hover:text-white hover:bg-slate-900/60 sidebar-nav-inactive' }}">
+                        <svg class="w-4 h-4 shrink-0 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                        </svg>
+                        <span class="sidebar-text flex-1 truncate">Fresh USB Installers</span>
+                        <span class="sidebar-badge text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                            ZIP
+                        </span>
+                    </a>
+                    <!-- Tooltip when minimized -->
+                    <div class="sidebar-tooltip absolute left-16 top-2 z-50 px-2.5 py-1 rounded-md bg-slate-900 border border-slate-700 text-white text-xs font-medium shadow-xl pointer-events-none whitespace-nowrap">
+                        Fresh USB Installers (.zip)
+                    </div>
+                </div>
+
+                <!-- Menu Item: Client Updates & Releases -->
+                <div class="relative group">
+                    <a href="{{ route('admin.releases.index') }}" 
+                        class="sidebar-item flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition border-l-2 {{ request()->routeIs('admin.releases.*') ? 'bg-amber-500/10 text-amber-300 border-amber-400 sidebar-nav-active' : 'border-transparent text-slate-400 hover:text-white hover:bg-slate-900/60 sidebar-nav-inactive' }}">
+                        <svg class="w-4 h-4 shrink-0 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                        </svg>
+                        <span class="sidebar-text flex-1 truncate">Publish Client Updates</span>
+                        <span class="sidebar-badge text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                            LIVE
+                        </span>
+                    </a>
+                    <!-- Tooltip when minimized -->
+                    <div class="sidebar-tooltip absolute left-16 top-2 z-50 px-2.5 py-1 rounded-md bg-slate-900 border border-slate-700 text-white text-xs font-medium shadow-xl pointer-events-none whitespace-nowrap">
+                        Publish Client Updates
+                    </div>
+                </div>
+
                 <!-- Section: System & Server -->
                 <div class="sidebar-section-title px-3 pt-4 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
                     System & Server
