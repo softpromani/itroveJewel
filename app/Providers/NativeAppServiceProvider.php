@@ -13,7 +13,10 @@ class NativeAppServiceProvider implements ProvidesPhpIni
      */
     public function boot(): void
     {
+        $localAppUrl = request()->schemeAndHttpHost() ?: url('/');
+
         Window::open('main')
+            ->url($localAppUrl)
             ->width(1280)
             ->height(800)
             ->minWidth(1000)

@@ -172,23 +172,28 @@ class AppPackagePortableCommand extends Command
                 $this->line('  ✓ Cleaned data/security directory.');
             }
 
-            // Fresh database
+            // Fresh database with core tables
             $dbDir = $dataDir.DIRECTORY_SEPARATOR.'database';
             if (! File::isDirectory($dbDir)) {
                 File::makeDirectory($dbDir, 0755, true);
             }
             $dbFile = $dbDir.DIRECTORY_SEPARATOR.'database.sqlite';
-            File::put($dbFile, '');
 
             try {
-                Artisan::call('migrate:fresh', [
+                Artisan::call('migrate', [
                     '--database' => 'sqlite',
                     '--path' => 'database/migrations',
                     '--force' => true,
                 ]);
-                $this->line('  ✓ Initialized fresh customer SQLite database with core tables.');
             } catch (\Throwable) {
                 // Migrations handled
+            }
+
+            if (File::exists(database_path('database.sqlite'))) {
+                File::copy(database_path('database.sqlite'), $dbFile);
+                $this->line('  ✓ Seeded fresh customer SQLite database with core tables (including cache & sessions).');
+            } else {
+                File::put($dbFile, '');
             }
         }
 

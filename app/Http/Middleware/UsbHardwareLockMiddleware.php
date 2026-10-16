@@ -37,8 +37,8 @@ class UsbHardwareLockMiddleware
             abort(404, 'The Admin Management Panel is only accessible on the central web server.');
         }
 
-        // Exclude internal installer / status / license routes to avoid circular blocks
-        if ($request->is('api/usb/*') || $request->is('usb/*') || $request->is('api/license/*') || $request->is('/')) {
+        // Exclude internal installer / status / license routes and NativePHP IPC to avoid circular blocks
+        if ($request->is('_native/*') || $request->is('api/usb/*') || $request->is('usb/*') || $request->is('api/license/*') || $request->is('/')) {
             return $next($request);
         }
 

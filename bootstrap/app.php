@@ -20,7 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->validateCsrfTokens(except: ['api/*']);
+        $middleware->validateCsrfTokens(except: ['api/*', '_native/*']);
         $middleware->append(UsbHardwareLockMiddleware::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
